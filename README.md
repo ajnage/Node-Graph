@@ -51,6 +51,57 @@ The model optimizes power distribution from multiple power plants (P1, P2, P3, a
   - Orange: High cost routes (≥$400)
   - Red: Premium cost routes ($1000)
 
+## Solution Visualization
+
+The solution consists of two parts:
+
+### 1. Network Summary Table
+
+| Node    | Type  | Flow | Shadow Price | Details                                        |
+| ------- | ----- | ---- | ------------ | ---------------------------------------------- |
+| P1      | Plant | 25.0 | $400         | Capacity: 25.0                                 |
+| P2      | Plant | 40.0 | $680         | Capacity: 40.0                                 |
+| P3      | Plant | 30.0 | $500         | Capacity: 30.0                                 |
+| Premium | Plant | 13.0 | N/A          | Unlimited capacity                             |
+| C1      | City  | 36.0 | $1000        | Sources: P3: 23.0 @ $500, Premium: 13.0 @$1000 |
+| C2      | City  | 42.0 | $980         | Sources: P2: 40.0 @ $300, P3: 2.0 @$480        |
+| C3      | City  | 30.0 | $950         | Sources: P1: 25.0 @ $400, P3: 5.0 @$450        |
+
+### 2. Network Flow Diagram
+
+![Power Distribution Network Optimization](network_visualization.png)
+
+The visualization shows:
+
+- **Nodes**:
+  - Blue circles: Power plants with supply (S) and shadow price (SP)
+  - Green circles: Cities with demand (D) and shadow price (SP)
+- **Edges**:
+  - Gray: Normal cost routes (<$400/unit)
+  - Orange: High cost routes (≥$400/unit)
+  - Red: Premium cost routes ($1000/unit)
+- **Edge Labels**: Show flow amount, cost per unit, and total cost
+- **Node Labels**: Display supply/demand and shadow prices
+
+### Key Solution Features:
+
+1. **Optimal Flow Distribution**:
+
+   - All base plants (P1, P2, P3) operating at full capacity
+   - Premium source used only for C1's excess demand
+   - P3 split among all three cities for optimal cost
+
+2. **Cost Structure**:
+
+   - Total system cost: $49,710
+   - Premium power used only when necessary
+   - Efficient utilization of lower-cost routes
+
+3. **Shadow Prices**:
+   - Plants: Range from $400-$680/unit
+   - Cities: Range from $950-$1000/unit
+   - Indicates high value of capacity expansion
+
 ## Key Features
 
 1. **Power Plants**:

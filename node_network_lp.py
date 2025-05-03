@@ -147,13 +147,69 @@ for name, constraint in prob.constraints.items():
 
 # Optional: visualize the graph
 def draw_graph(G, node_labels=None):
-    # Create figure with better proportions
-    fig = plt.figure(figsize=(20, 12))  # Wider figure, shorter height
+    # Create figure with better proportions and two subplots
+    fig = plt.figure(figsize=(20, 16))
     
-    # Create single subplot for the entire visualization
-    ax = plt.gca()
-    ax.set_xlim([-10, 10])
-    ax.set_ylim([-8, 8])
+    # Add table subplot
+    ax1 = plt.subplot2grid((4, 1), (0, 0), rowspan=1)
+    ax1.axis('off')
+    
+    # Create table data
+    table_data = []
+    header = ['Node', 'Type', 'Flow', 'Shadow Price', 'Details']
+    table_data.append(header)
+    
+    # Get shadow prices
+    shadow_prices = {}
+    for name, constraint in prob.constraints.items():
+        if name.startswith("flow_conservation_"):
+            node = name.split('_')[-1]
+            if node.startswith('P') and node != 'Premium':
+                shadow_price = -constraint.pi
+            elif node.startswith('C'):
+                shadow_price = constraint.pi
+            shadow_prices[node] = shadow_price
+    
+    # Add power plants to table
+    for node in sorted([n for n in G.nodes() if n.startswith('P')]):
+        outflow = sum(flow[(node, v)].varValue for v in G.neighbors(node))
+        if node == 'Premium':
+            row = [node, 'Plant', f"{outflow:.1f}", 'N/A', 'Unlimited capacity']
+        else:
+            sp = shadow_prices.get(node, 0)
+            capacity = -node_balance[node]
+            row = [node, 'Plant', f"{outflow:.1f}", f"${abs(sp):.0f}", f"Capacity: {capacity:.1f}"]
+        table_data.append(row)
+    
+    # Add cities to table
+    for node in sorted([n for n in G.nodes() if n.startswith('C')]):
+        inflow = sum(flow[(u, node)].varValue for u in G.predecessors(node))
+        sp = shadow_prices.get(node, 0)
+        sources = [f"{u}: {flow[(u, node)].varValue:.1f} @ ${G[u][node]['cost']}" 
+                  for u in G.predecessors(node) if flow[(u, node)].varValue > 0]
+        row = [node, 'City', f"{inflow:.1f}", f"${abs(sp):.0f}", 
+               f"Sources: {', '.join(sources)}"]
+        table_data.append(row)
+    
+    # Create and style the table
+    table = ax1.table(cellText=table_data,
+                     loc='center',
+                     cellLoc='center',
+                     bbox=[0.1, 0, 0.8, 1])
+    table.auto_set_font_size(False)
+    table.set_fontsize(9)
+    table.scale(1.2, 1.8)
+    
+    # Style header
+    for (row, col), cell in table.get_celld().items():
+        if row == 0:
+            cell.set_text_props(weight='bold')
+            cell.set_facecolor('#e6e6e6')
+    
+    # Add network diagram subplot
+    ax2 = plt.subplot2grid((4, 1), (1, 0), rowspan=3)
+    ax2.set_xlim([-10, 10])
+    ax2.set_ylim([-8, 8])
     
     # Set fixed manual positions for nodes with better spacing
     pos = {
@@ -166,66 +222,45 @@ def draw_graph(G, node_labels=None):
         'C3': (7, -4),
     }
     
-    # Get shadow prices for plants and cities
-    shadow_prices = {}
-    for name, constraint in prob.constraints.items():
-        if name.startswith("flow_conservation_"):
-            node = name.split('_')[-1]
-            if node.startswith('P') and node != 'Premium':
-                shadow_price = -constraint.pi
-            elif node.startswith('C'):
-                shadow_price = constraint.pi
-            shadow_prices[node] = shadow_price
-
-    # Update node labels with cleaner formatting
+    # Simplify node labels to just show the node name
     node_labels = {}
     for node in G.nodes():
-        inflow_val = sum(flow[(u, v)].varValue for u, v in G.in_edges(node))
-        outflow_val = sum(flow[(u, v)].varValue for u, v in G.out_edges(node))
-        
         if node.startswith('P') and node != 'Premium':
+            capacity = -node_balance[node]
             shadow_price = shadow_prices.get(node, 0)
-            node_labels[node] = (
-                f"{node}\n"
-                f"Out: {outflow_val:.0f}\n"
-                f"SP: ${abs(shadow_price):.0f}"
-            )
+            node_labels[node] = f"{node}\nS: {capacity:.0f}\nSP: ${abs(shadow_price):.0f}"
         elif node == 'Premium':
-            node_labels[node] = (
-                f"{node}\n"
-                f"Out: {outflow_val:.0f}"
-            )
+            outflow = sum(flow[(node, v)].varValue for v in G.neighbors(node))
+            node_labels[node] = f"{node}\nS: ∞\nOut: {outflow:.0f}"
         else:  # Cities
+            demand = node_balance[node]
             shadow_price = shadow_prices.get(node, 0)
-            node_labels[node] = (
-                f"{node}\n"
-                f"In: {inflow_val:.0f}\n"
-                f"SP: ${abs(shadow_price):.0f}"
-            )
+            node_labels[node] = f"{node}\nD: {demand:.0f}\nSP: ${abs(shadow_price):.0f}"
 
-    # Draw plants (blue) with adjusted size
+    # Draw plants (blue)
     plant_nodes = ['P1', 'P2', 'P3', 'Premium']
     nx.draw_networkx_nodes(G, pos, 
                           nodelist=plant_nodes,
                           node_color='lightblue',
-                          node_size=2500,
+                          node_size=3000,  # Increased size for better label visibility
                           edgecolors='steelblue',
-                          linewidths=2)
+                          linewidths=2,
+                          ax=ax2)
     
     # Draw cities (green)
     city_nodes = ['C1', 'C2', 'C3']
     nx.draw_networkx_nodes(G, pos, 
                           nodelist=city_nodes,
                           node_color='lightgreen',
-                          node_size=2500,
+                          node_size=3000,  # Increased size for better label visibility
                           edgecolors='forestgreen',
-                          linewidths=2)
+                          linewidths=2,
+                          ax=ax2)
     
-    # Draw node labels
-    nx.draw_networkx_labels(G, pos, labels=node_labels, font_size=10)
-
+    # Draw node labels with smaller font
+    nx.draw_networkx_labels(G, pos, labels=node_labels, font_size=9)
+    
     # Draw edges with better visibility and color coding
-    edge_labels = []
     for (u, v) in G.edges():
         if flow[(u, v)].varValue > 0:
             start = np.array(pos[u])
@@ -240,7 +275,7 @@ def draw_graph(G, node_labels=None):
                 edge_color = 'gray'
             
             # Draw edge with arrow
-            plt.arrow(start[0], start[1],
+            ax2.arrow(start[0], start[1],
                      end[0] - start[0], end[1] - start[1],
                      head_width=0.2,
                      head_length=0.3,
@@ -252,49 +287,46 @@ def draw_graph(G, node_labels=None):
             
             flow_val = flow[(u, v)].varValue
             total_cost = cost * flow_val
-            label = f"Flow: {flow_val:.1f}\nCost: ${cost:,.0f}\nTotal: ${total_cost:,.0f}"
+            label = f"{flow_val:.1f}\n${cost:,.0f}/unit\n${total_cost:,.0f}"
             
-            # Calculate midpoint and offset for label
-            # Position labels closer to the power plants (source nodes)
-            # Use 0.25 as the interpolation factor (closer to start point)
-            label_pos = start + (end - start) * 0.25
-            
-            # Add small vertical offset to prevent overlap with edges
+            # Calculate angle of the edge for label rotation
             dx = end[0] - start[0]
             dy = end[1] - start[1]
-            length = np.sqrt(dx*dx + dy*dy)
-            normal = np.array([-dy/length, dx/length])
-            label_pos = label_pos + normal * 0.4
+            angle = np.degrees(np.arctan2(dy, dx))
+            
+            # Position label along the edge
+            label_pos = start + (end - start) * 0.35
             
             # Add label with white background
-            plt.annotate(label,
-                        xy=label_pos,  # Changed from mid_point to label_pos
+            ax2.annotate(label,
+                        xy=label_pos,
                         xytext=label_pos,
                         textcoords='data',
                         ha='center',
                         va='center',
+                        rotation=angle,
                         bbox=dict(facecolor='white',
                                 edgecolor=edge_color,
                                 alpha=0.8,
-                                pad=2,
+                                pad=1,
                                 boxstyle='round'),
-                        fontsize=9)
+                        fontsize=8)
     
-    # Add title and section labels with better positioning
-    plt.title("Power Distribution Network\nOptimal Flow Solution", 
-              pad=20, fontsize=16, fontweight='bold')
-    plt.text(-9, 6, "Power Plants", fontsize=12, fontweight='bold')
-    plt.text(6, 6, "Cities", fontsize=12, fontweight='bold')
+    # Add title and section labels
+    ax2.set_title("Power Distribution Network\nOptimal Flow Solution", 
+                  pad=20, fontsize=16, fontweight='bold')
+    ax2.text(-9, 6, "Power Plants", fontsize=12, fontweight='bold')
+    ax2.text(6, 6, "Cities", fontsize=12, fontweight='bold')
     
-    # Add legend with better positioning
+    # Add legend
     legend_elements = [
         plt.Line2D([0], [0], color='gray', label='Normal Cost', linewidth=2),
         plt.Line2D([0], [0], color='orange', label='High Cost (≥$400)', linewidth=2),
         plt.Line2D([0], [0], color='red', label='Premium Cost ($1000)', linewidth=2)
     ]
-    plt.legend(handles=legend_elements, loc='upper center', bbox_to_anchor=(0.5, -0.05))
+    ax2.legend(handles=legend_elements, loc='upper center', bbox_to_anchor=(0.5, -0.05))
     
-    plt.axis('off')
+    ax2.axis('off')
     plt.tight_layout()
     
     # Save the figure before showing it
