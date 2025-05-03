@@ -2,6 +2,33 @@
 
 This project implements a power distribution network optimization model using Python, solving the minimum cost flow problem for power distribution from plants to cities.
 
+## Original Problem Statement
+
+Three electric power plants with capacities of 25, 40, and 30 million kWh supply electricity to three cities. The maximum demands at the three cities are estimated at 30, 35, and 25 million kWh. During the month of August, there is a 20% increase in demand at each of the three cities, which can be met by purchasing electricity from another network at a premium rate of $1000 per million kWh. The network is not linked to city 3, however.
+
+The price per million kWh at the three cities is given in the following table:
+
+| Plant | City 1 | City 2 | City 3 |
+| ----- | ------ | ------ | ------ |
+| P1    | $600   | $700   | $400   |
+| P2    | $320   | $300   | $350   |
+| P3    | $500   | $480   | $450   |
+
+The utility company needs to determine:
+
+1. The most economical plan for the distribution and purchase of additional energy
+2. The optimal distribution plan
+3. The cost of the additional power purchased by each of the three cities
+
+## Solution Overview
+
+This implementation provides:
+
+- A complete transportation model formulation
+- Optimal distribution plan visualization
+- Analysis of additional power purchases and costs
+- Shadow price analysis for capacity planning
+
 ## Problem Description
 
 The model optimizes power distribution from multiple power plants (P1, P2, P3, and a Premium source) to three cities (C1, C2, C3), considering:
