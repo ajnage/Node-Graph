@@ -269,45 +269,8 @@ def draw_graph(G, node_labels=None):
     plt.axis('off')
     plt.tight_layout()
     
-    # Create table below the graph
-    table_data = []
-    header = ['City', 'From', 'Flow', 'Cost/unit ($)', 'Total Cost ($)']
-    table_data.append(header)
-    
-    city_data = {}
-    total_cost = 0
-    for (u, v) in G.edges():
-        if flow[(u, v)].varValue > 0:
-            city = v
-            source = u
-            amount = flow[(u, v)].varValue
-            unit_cost = G[u][v]['cost']
-            edge_total = amount * unit_cost
-            total_cost += edge_total
-            
-            if city not in city_data:
-                city_data[city] = []
-            city_data[city].append((source, amount, unit_cost, edge_total))
-    
-    for city in sorted(city_data.keys()):
-        first_row = True
-        for source, amount, unit_cost, edge_total in sorted(city_data[city]):
-            row = [
-                city if first_row else '',
-                source,
-                f"{amount:,.1f}",
-                f"{unit_cost:,.0f}",
-                f"{edge_total:,.0f}"
-            ]
-            table_data.append(row)
-            first_row = False
-    
-    table_data.append(['', '', '', 'Total:', f"{total_cost:,.0f}"])
-    
-    plt.table(cellText=table_data,
-              loc='bottom',
-              cellLoc='center',
-              bbox=[0.1, -0.5, 0.8, 0.2])
+    # Save the figure before showing it
+    plt.savefig('network_visualization.png', dpi=300, bbox_inches='tight')
     
     plt.show()
 
