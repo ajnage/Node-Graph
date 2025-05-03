@@ -104,7 +104,7 @@ if pulp.LpStatus[prob.status] in ('Optimal', 'Feasible'):
 print("\n--- Shadow Prices (Opportunity Cost) ---")
 print("These values show the cost reduction ($/unit) if we increase plant capacity by 1 unit")
 for name, constraint in prob.constraints.items():
-    if name.startswith("flow_conservation_P"):  # Only power plant constraints
+    if name.startswith("flow_conservation_P") and name != "flow_conservation_Premium":  # Only power plant constraints
         plant = name.split('_')[-1]
         shadow_price = -constraint.pi  # Negative because constraints are in form: outflow <= capacity
         current_flow = sum(flow[(plant, city)].varValue for city in ['C1', 'C2', 'C3'] if (plant, city) in flow)
@@ -120,6 +120,30 @@ for name, constraint in prob.constraints.items():
             else:
                 print(f"  → Increasing capacity by 1 unit would reduce total cost by ${abs(shadow_price):.2f}")
             print()
+
+# Add analysis of city demand shadow prices
+print("\n--- City Demand Shadow Prices ---")
+print("These values show the marginal cost ($/unit) of increasing demand at each city")
+for name, constraint in prob.constraints.items():
+    if name.startswith("flow_conservation_C"):  # Only city constraints
+        city = name.split('_')[-1]
+        shadow_price = constraint.pi  # No negative here as constraints are in form: inflow - outflow = demand
+        current_demand = node_balance[city]
+        total_flow = sum(flow[(p, city)].varValue for p in ['P1', 'P2', 'P3', 'Premium'] if (p, city) in flow)
+        
+        print(f"{city}:")
+        print(f"  Current Demand: {current_demand:.1f} million kWh")
+        print(f"  Total Flow Received: {total_flow:.1f} million kWh")
+        print(f"  Marginal Cost: ${abs(shadow_price):.2f}/unit")
+        
+        # Analyze sources of power
+        print("  Power Sources:")
+        for plant in ['P1', 'P2', 'P3', 'Premium']:
+            if (plant, city) in flow and flow[(plant, city)].varValue > 0:
+                amount = flow[(plant, city)].varValue
+                cost = G[plant][city]['cost']
+                print(f"    - {plant}: {amount:.1f} units at ${cost}/unit")
+        print()
 
 # Optional: visualize the graph
 def draw_graph(G, node_labels=None):
@@ -142,20 +166,22 @@ def draw_graph(G, node_labels=None):
         'C3': (7, -4),
     }
     
-    # Get shadow prices for plants
+    # Get shadow prices for plants and cities
     shadow_prices = {}
     for name, constraint in prob.constraints.items():
-        if name.startswith("flow_conservation_P") and name != "flow_conservation_Premium":
-            plant = name.split('_')[-1]
-            shadow_price = -constraint.pi
-            shadow_prices[plant] = shadow_price
+        if name.startswith("flow_conservation_"):
+            node = name.split('_')[-1]
+            if node.startswith('P') and node != 'Premium':
+                shadow_price = -constraint.pi
+            elif node.startswith('C'):
+                shadow_price = constraint.pi
+            shadow_prices[node] = shadow_price
 
     # Update node labels with cleaner formatting
     node_labels = {}
     for node in G.nodes():
         inflow_val = sum(flow[(u, v)].varValue for u, v in G.in_edges(node))
         outflow_val = sum(flow[(u, v)].varValue for u, v in G.out_edges(node))
-        net_balance = inflow_val - outflow_val
         
         if node.startswith('P') and node != 'Premium':
             shadow_price = shadow_prices.get(node, 0)
@@ -170,9 +196,11 @@ def draw_graph(G, node_labels=None):
                 f"Out: {outflow_val:.0f}"
             )
         else:  # Cities
+            shadow_price = shadow_prices.get(node, 0)
             node_labels[node] = (
                 f"{node}\n"
-                f"In: {inflow_val:.0f}"
+                f"In: {inflow_val:.0f}\n"
+                f"SP: ${abs(shadow_price):.0f}"
             )
 
     # Draw plants (blue) with adjusted size

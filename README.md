@@ -82,13 +82,54 @@ The solution uses:
 
 ## Shadow Prices Analysis
 
-The shadow prices indicate potential cost savings per unit of capacity increase:
+### Power Plant Shadow Prices
 
-- P1: $400/unit
-- P2: $680/unit
-- P3: $500/unit
+The shadow prices for power plants indicate potential cost savings per unit of capacity increase:
 
-These values show the potential cost reduction if we increase the capacity of each plant by one unit.
+- P1: $400/unit - Would reduce total cost by $400 per unit of additional capacity
+- P2: $680/unit - Would reduce total cost by $680 per unit of additional capacity
+- P3: $500/unit - Would reduce total cost by $500 per unit of additional capacity
+
+All power plants are operating at 100% capacity utilization, indicating a highly constrained system.
+
+### City Demand Shadow Prices
+
+The shadow prices for cities show the marginal cost of increasing demand at each location:
+
+1. **City 1 (C1)**:
+
+   - Marginal Cost: $1000/unit
+   - Currently receiving:
+     - 23.0 units from P3 at $500/unit
+     - 13.0 units from Premium at $1000/unit
+   - Highest marginal cost due to reliance on premium power
+
+2. **City 2 (C2)**:
+
+   - Marginal Cost: $980/unit
+   - Currently receiving:
+     - 40.0 units from P2 at $300/unit
+     - 2.0 units from P3 at $480/unit
+   - High marginal cost due to network constraints
+
+3. **City 3 (C3)**:
+   - Marginal Cost: $950/unit
+   - Currently receiving:
+     - 25.0 units from P1 at $400/unit
+     - 5.0 units from P3 at $450/unit
+   - Lowest marginal cost among cities but still high
+
+### Key Insights
+
+1. The high city shadow prices ($950-$1000) compared to plant shadow prices ($400-$680) indicate that:
+
+   - Demand reduction would be more valuable than capacity increase
+   - The system is highly constrained
+   - Additional demand would be very expensive to meet
+
+2. The premium power source is only used for City 1, explaining its highest marginal cost
+
+3. All base power plants are at capacity, suggesting potential value in capacity expansion
 
 ## Requirements
 
